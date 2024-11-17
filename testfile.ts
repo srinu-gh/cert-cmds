@@ -12,14 +12,10 @@ import * as moment from 'moment-timezone';
 
 @Injectable()
 export class DateFormatResponseInterceptor implements HttpInterceptor {
-  // URL of the target service
   private targetServiceUrl = 'https://api.example.com/specific-service';
-
-  // Fields to transform (including nested ones)
-  private restrictedFields: string[] = ['runDate', 'startDate', 'endDate'];
+  private restrictedFields: string[] = ['RUNDATE'];
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Check if the request URL matches the target service
     if (req.url.includes(this.targetServiceUrl)) {
       return next.handle(req).pipe(
         map((event) => {
@@ -31,15 +27,14 @@ export class DateFormatResponseInterceptor implements HttpInterceptor {
         })
       );
     }
-
-    // If not the target service, pass the request unmodified
     return next.handle(req);
   }
 
   private transformResponse(response: any): any {
+    // Handle arrays and objects uniformly
     if (Array.isArray(response)) {
       return response.map((item) => this.traverseAndTransform(item));
-    } else if (typeof response === 'object') {
+    } else if (typeof response === 'object' && response !== null) {
       return this.traverseAndTransform(response);
     }
     return response;
@@ -47,21 +42,21 @@ export class DateFormatResponseInterceptor implements HttpInterceptor {
 
   private traverseAndTransform(obj: any): any {
     if (typeof obj !== 'object' || obj === null) {
-      return obj;
+      return obj; // Return primitive values as is
     }
 
     const transformedObj = { ...obj };
 
     for (const key in transformedObj) {
       if (transformedObj.hasOwnProperty(key)) {
-        if (this.restrictedFields.includes(key) && transformedObj[key]) {
-          // Transform the field if it matches the restrictedFields
-          transformedObj[key] = this.formatDateWithTimezone(
-            transformedObj[key],
+        // If the key is 'RUNDATE' or any other restricted field, format the 'value'
+        if (this.restrictedFields.includes(key) && transformedObj[key].value) {
+          transformedObj[key].value = this.formatDateWithTimezone(
+            transformedObj[key].value,
             'America/New_York'
           );
         } else if (typeof transformedObj[key] === 'object') {
-          // Recursively transform child objects
+          // Recursively transform nested objects
           transformedObj[key] = this.traverseAndTransform(transformedObj[key]);
         }
       }
@@ -71,6 +66,7 @@ export class DateFormatResponseInterceptor implements HttpInterceptor {
   }
 
   private formatDateWithTimezone(date: string | Date, timezone: string): string {
+    if (!date) return date; // Ensure the date is not null/undefined
     return moment(date).tz(timezone).format('MM/DD/YYYY hh:mm:ss A z');
   }
 }
