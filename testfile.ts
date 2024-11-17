@@ -11,7 +11,7 @@ import { map } from 'rxjs/operators';
 import * as moment from 'moment-timezone';
 
 @Injectable()
-export class NestedFieldsInterceptor implements HttpInterceptor {
+export class DateFormatResponseInterceptor implements HttpInterceptor {
   private targetServiceUrl = 'https://api.example.com/specific-service';
   private restrictedFields: string[] = ['RUNDATE', 'modified']; // Include 'modified' here
 
