@@ -11,9 +11,9 @@ import { map } from 'rxjs/operators';
 import * as moment from 'moment-timezone';
 
 @Injectable()
-export class DateFormatResponseInterceptor implements HttpInterceptor {
+export class NestedFieldsInterceptor implements HttpInterceptor {
   private targetServiceUrl = 'https://api.example.com/specific-service';
-  private restrictedFields: string[] = ['RUNDATE'];
+  private restrictedFields: string[] = ['RUNDATE', 'modified']; // Include 'modified' here
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (req.url.includes(this.targetServiceUrl)) {
@@ -49,12 +49,21 @@ export class DateFormatResponseInterceptor implements HttpInterceptor {
 
     for (const key in transformedObj) {
       if (transformedObj.hasOwnProperty(key)) {
-        // If the key is 'RUNDATE' or any other restricted field, format the 'value'
-        if (this.restrictedFields.includes(key) && transformedObj[key].value) {
-          transformedObj[key].value = this.formatDateWithTimezone(
-            transformedObj[key].value,
-            'America/New_York'
-          );
+        // If the key is in restricted fields, format the value
+        if (this.restrictedFields.includes(key) && transformedObj[key]) {
+          if (key === 'RUNDATE' && transformedObj[key].value) {
+            // Format the 'value' inside RUNDATE
+            transformedObj[key].value = this.formatDateWithTimezone(
+              transformedObj[key].value,
+              'America/New_York'
+            );
+          } else if (key === 'modified') {
+            // Format the 'modified' field as a date
+            transformedObj[key] = this.formatDateWithTimezone(
+              transformedObj[key],
+              'America/New_York'
+            );
+          }
         } else if (typeof transformedObj[key] === 'object') {
           // Recursively transform nested objects
           transformedObj[key] = this.traverseAndTransform(transformedObj[key]);
